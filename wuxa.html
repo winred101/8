@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>武侠世界</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        // 字体加载检测
+        document.fonts.ready.then(function() {
+            console.log("所有字体已加载完成");
+            // 检查特定字体是否加载
+            if (document.fonts.check('1em "FZFangSong-Z02S"')) {
+                console.log('FZFangSong-Z02S 字体已成功加载');
+            } else {
+                console.log('FZFangSong-Z02S 字体加载失败，将使用备用字体');
+                // 尝试使用系统字体
+                document.body.style.fontFamily = '"方正仿宋", "FangSong", "STFangSong", "华文仿宋", serif';
+            }
+        });
+        
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4A6FA5',
+                        secondary: '#C8A27A',
+                        dark: '#2C3E50',
+                        light: '#F8F5F0',
+                    },
+                    fontFamily: {
+                        serif: ['FZFangSong-Z02S', 'Garamond', 'Georgia', 'serif'],
+                        fangSong: ['FZFangSong-Z02S', '方正仿宋', 'FangSong', 'STFangSong', '华文仿宋', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .bg-texture {
+                background-image: url('https://picsum.photos/id/106/1000/1000');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }
+            .option-hover {
+                transition: all 0.3s ease;
+            }
+            .option-hover:hover {
+                transform: translateX(8px);
+                background-color: rgba(74, 111, 165, 0.15);
+            }
+            .modal-backdrop {
+                backdrop-filter: blur(3px);
+            }
+            .copy-notification {
+                animation: fadein 0.5s, fadeout 0.5s 2.5s;
+            }
+            @keyframes fadein {
+                from { bottom: 0; opacity: 0; }
+                to { bottom: 30px; opacity: 1; }
+            }
+            @keyframes fadeout {
+                from { bottom: 30px; opacity: 1; }
+                to { bottom: 0; opacity: 0; }
+            }
+        }
+    </style>
+    <style>
+        @font-face {
+            font-family: 'FZFangSong-Z02S';
+            src: local('FZFangSong-Z02S'),
+                 local('FZFSJW--GB1-0'),
+                 url('隸書.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        body {
+            font-family: 'FZFangSong-Z02S', '方正仿宋', 'FangSong', 'STFangSong', '华文仿宋', serif;
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen text-dark">
+    <!-- 背景遮罩 -->
+    <div class="fixed inset-0 bg-texture opacity-20 z-0"></div>
+    
+    <div class="container mx-auto px-4 py-8 max-w-3xl relative z-10">
+        <!-- 游戏标题 -->
+        <header class="text-center mb-8 pb-4 border-b-2 border-secondary">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-primary text-shadow">武侠世界</h1>
+            <p class="text-gray-600 italic">一个充满未知的旅程...</p>
+        </header>
+        
+        <!-- 当前地点显示 -->
+        <div class="flex justify-between mb-4">
+            <div class="px-4 py-2 bg-primary/10 rounded-lg text-primary flex items-center">
+                <i class="fa-solid fa-map-marker-alt mr-2"></i><span id="location-display">未知之地</span>
+            </div>
+        </div>
+        
+        <!-- 游戏区域 -->
+        <main class="bg-white/80 backdrop-blur-sm rounded-lg p-6 md:p-8 shadow-xl mb-8">
+            <!-- 故事显示区域 -->
+            <div id="story-container" class="mb-8 leading-relaxed text-lg">
+                <p>你的记忆有些模糊，周围的环境看起来陌生而神秘。你只记得自己是为了寻找传说中的武学秘籍而踏上了这段旅程。</p>
+                <p class="mt-4">这是一个充满机遇与危险的武侠世界，你的命运将由你的选择决定...</p>
+            </div>
+            
+            <!-- 选择区域 -->
+            <div id="choices-container" class="space-y-4">
+                <!-- 选项将由AI动态生成 -->
+            </div>
+            
+            <!-- 状态栏 -->
+            <div class="mt-8 pt-4 border-t border-gray-200 flex justify-between items-center">
+                <button id="back-btn" class="text-sm text-primary hover:text-primary/80 flex items-center" disabled style="display: none;">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> 回退
+                </button>
+                <div class="flex">
+                    <button id="restart-btn" class="text-sm text-primary hover:text-primary/80 flex items-center">
+                        <i class="fa-solid fa-refresh mr-1"></i> 重新开始
+                    </button>
+                    <button id="save-btn" class="text-sm text-primary hover:text-primary/80 flex items-center ml-4">
+                        <i class="fa-solid fa-save mr-1"></i> 存档
+                    </button>
+                    <button id="load-btn" class="text-sm text-primary hover:text-primary/80 flex items-center ml-2">
+                        <i class="fa-solid fa-folder-open mr-1"></i> 读档
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 游戏信息 -->
+        <footer class="text-center text-gray-500 text-sm">
+            <p>点击选项来推进故事 | 你的每一个选择都会影响结局</p>
+        </footer>
+    </div>
+
+    <!-- 状态弹窗 -->
+    <div id="status-modal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-primary">人物状态</h2>
+                <button id="close-status" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-gray-600">生命值:</p>
+                    <p id="health" class="text-lg">100/100</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">修为:</p>
+                    <p id="cultivation" class="text-lg">一阶象气：象力初现</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">门派:</p>
+                    <p id="faction" class="text-lg">无</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">武学:</p>
+                    <p id="skills" class="text-lg">无</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背包弹窗 -->
+    <div id="backpack-modal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-primary">背包</h2>
+                <button id="close-backpack" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <p class="text-gray-600">金钱</p>
+                    <p id="money" class="text-lg">50两银子</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">物品</p>
+                    <p id="items" class="text-lg">无</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增的交流群信息 -->
+    <div id="group-info" class="fixed bottom-6 right-6 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg p-3 z-20 cursor-pointer hover:bg-white transition-colors duration-300 flex items-center">
+        <i class="fa-solid fa-users text-primary mr-2"></i>
+        <span>交流群:2306019357</span>
+    </div>
+    <div id="copy-notice" class="fixed bottom-6 right-6 bg-primary text-white px-3 py-1 rounded-lg z-30 hidden copy-notification">
+        已复制到剪贴板
+    </div>
+
+    <script>
+        // AI接口配置
+        const AI_API_URL = 'https://free.v36.cm/v1/chat/completions';
+        const AI_API_KEY = 'sk-tdDxTV2apYLD07R070A3845eAb7c4996A8CeD4B019288b2f';
+        const AI_MODEL = 'gpt-4o-mini';
+
+        // 存档键
+        const SAVE_KEY = 'mist_forest_ai_save';
+
+        // DOM元素
+        const storyContainer = document.getElementById('story-container');
+        const choicesContainer = document.getElementById('choices-container');
+        const restartBtn = document.getElementById('restart-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const loadBtn = document.getElementById('load-btn');
+        const backBtn = document.getElementById('back-btn');
+        const locationDisplay = document.getElementById('location-display');
+        const groupInfo = document.getElementById('group-info');
+        const copyNotice = document.getElementById('copy-notice');
+        
+        
+        // 状态显示元素
+        const healthEl = document.getElementById('health');
+        const cultivationEl = document.getElementById('cultivation');
+        const factionEl = document.getElementById('faction');
+        const skillsEl = document.getElementById('skills');
+        const moneyEl = document.getElementById('money');
+        const itemsEl = document.getElementById('items');
+
+        // 游戏状态
+        let history = [];
+        let currentStory = '';
+        let currentChoices = [];
+        let progressCount = 1;
+        let currentLocation = '未知之地';
+        
+        
+        // 人物状态
+        let playerStatus = {
+            health: 100,
+            maxHealth: 100,
+            cultivation: "一阶象气：象力初现",
+            faction: "无",
+            skills: ["无"],
+            money: 50,
+            items: []
+        };
+
+        // 复制交流群号功能
+        groupInfo.addEventListener('click', () => {
+            const groupNumber = '2306019357';
+            navigator.clipboard.writeText(groupNumber).then(() => {
+                // 显示复制成功提示
+                copyNotice.classList.remove('hidden');
+                setTimeout(() => {
+                    copyNotice.classList.add('hidden');
+                }, 3000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制群号：2306019357');
+            });
+        });
+
+        // AI请求：生成剧情和选项，包含人物状态信息
+        async function fetchAIStory(history) {
+            // 格式化人物状态信息，提供给AI
+            const statusInfo = `
+人物状态：
+生命值: ${playerStatus.health}/${playerStatus.maxHealth}
+修为: ${playerStatus.cultivation}
+门派: ${playerStatus.faction}
+武学: ${playerStatus.skills.join('、')}
+金钱: ${playerStatus.money}两银子
+物品: ${playerStatus.items.length > 0 ? playerStatus.items.join('、') : '无'}
+当前地点: ${currentLocation}
+            `.trim();
+            
+            const systemPrompt = `你是一个武侠文字冒险游戏AI。创造一个丰富的武侠世界，每次用户选择后，你会生成一段新的剧情，并给出10个可选项。
+
+【游戏开始】
+游戏开始时，请随机选择一个有趣的初始地点（如：洛阳、扬州、大漠、苗疆、藏地、塞外、天山、禁地、古墓、遗迹、雪山、绝谷、毒林等），并在故事中明确提及该地点名称。为玩家创造一个引人入胜的开场情境，并提供多样化的初始选择。必须在返回的JSON中包含location字段，明确指定当前地点名称。
+
+【返回格式】
+你必须返回如下格式的JSON：
+{
+  "story": "当前剧情描述...",
+  "choices": ["选项1", "选项2", ...],
+  "location": "当前地点名称",
+  "statusChanges": { 可选的状态变化 }
+}
+
+【世界结构】
+1. 朝堂与政权：
+   - 虚构的大宋王朝，皇帝与朝廷权臣（宰相、太监、锦衣卫）
+   - 官场斗争：清流党与阉党、忠臣与权臣之争
+   - 藩镇、地方势力：节度使、边关守将
+
+2. 江湖与门派：
+   - 正派：少林、武当、华山、昆仑、峨眉、崆峒
+   - 邪派：日月神教、五毒教、魔门、血影门
+   - 中立派：丐帮、青城、唐门、万花谷
+   - 门规、代系、掌门制度、内斗与分裂
+
+3. 地域与秘境：
+   - 知名地点：洛阳、扬州、大漠、苗疆、藏地、塞外、天山
+   - 秘境：禁地、古墓、遗迹、雪山、绝谷、毒林
+   - 地理功能：山寨据点、镖局分舵、书院、客栈、酒楼、黑市
+
+【武功体系】
+1. 内功心法：阴阳内功、九阳神功、九阴真经、龟息大法
+2. 外功招式：降龙十八掌、独孤九剑、太极剑法、一阳指
+3. 轻功与奇门：飞檐走壁、水上漂、梯云纵、缩地成寸
+4. 武学奇书与传承：绝世武功秘笈、口耳相传、密室传承
+
+【人物类型】
+1. 主角：少年侠客、孤儿复仇者、流浪剑客、隐世高人后裔
+2. 配角：正派师父、义气兄弟、红颜知己、毒女医女、杀手
+3. 反派：魔门教主、朝中奸臣、武林败类、杀父仇人
+
+【主题与价值观】
+1. 侠义精神：为国为民、行侠仗义、快意恩仇
+2. 宿命与因果：恩怨轮回、报仇雪恨、冤冤相报
+3. 正邪模糊：正派行恶、邪派行善、亦正亦邪
+
+【常见设定与道具】
+1. 神兵利器：神剑、名刀、毒针、机关傀儡
+2. 神秘药物：九转金丹、冰蚕毒、还魂草、忘忧散
+3. 特殊体质：天生寒体、焚血体、百毒不侵
+4. 江湖组织：镖局、杀手阁、青楼、情报网、神秘世家
+5. 武道等级：
+   - 一阶象气：象力初现
+   - 二阶象液：象力凝液
+   - 三阶象旋：象力成旋
+   - 四阶象火：象力化火
+   - 五阶象域：象力成域
+
+【情感元素】
+1. 爱情纠葛：师徒恋、三角恋、仇人之女
+2. 兄弟情谊：结义金兰、反目成仇、生死与共
+3. 师徒情仇：师父之仇、师门恩怨、传功之恩
+4. 家国情怀：忠君报国、壮志难酬、舍江湖而归隐
+
+【江湖规则】
+1. 武林大会、比武招亲、英雄帖、血书、江湖令
+2. 天下第一、武林至尊、十大高手、四大世家
+
+你需要考虑玩家当前的状态信息，并可以严格根据剧情发展修改这些状态（如战斗会减少生命值，获得物品会增加背包物品等）。
+
+请用如下JSON格式返回：
+{
+  "story":"剧情内容",
+  "choices":["选项1",...],
+  "location":"当前地点名称",
+  "statusChanges": {
+    "health": 可选，新的生命值,
+    "maxHealth": 可选，新的最大生命值,
+    "cultivation": 可选，新的修为,
+    "faction": 可选，新的门派,
+    "skills": 可选，新的武学数组,
+    "money": 可选，新的金钱数量,
+    "items": 可选，新的物品数组
+  }
+}
+
+剧情要有悬念和探索感，选项要多样且有趣。不要输出除JSON外的任何内容。状态变化只在有改变时提供，没有变化可以省略。`;
+            
+            const userPrompt = `当前状态：
+${statusInfo}
+
+游戏历史：
+${history.map((h, i) => `第${i+1}步：${h.story}\n选择：${h.choice}`).join('\n') || '玩家刚刚进入游戏。'}`;
+            
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ];
+            
+            const res = await fetch(AI_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AI_API_KEY}`
+                },
+                body: JSON.stringify({ model: AI_MODEL, messages })
+            });
+            
+            if (!res.ok) throw new Error('接口请求失败，试着先点存档然后读档以恢复游戏');
+            const data = await res.json();
+            
+            // 解析AI返回的JSON
+            let content = data.choices?.[0]?.message?.content || '';
+            try {
+                // 只提取JSON部分
+                const jsonStr = content.match(/\{[\s\S]*\}/)?.[0];
+                const parsedResponse = JSON.parse(jsonStr);
+                
+                // 如果是游戏开始，尝试从故事中提取地点
+                if (history.length === 0) {
+                    // 从故事中提取地点名称（更全面的匹配模式）
+                    const locationMatch = parsedResponse.story.match(/[「『"']([\w\s]+村|[\w\s]+镇|[\w\s]+城|[\w\s]+寨|[\w\s]+观|[\w\s]+寺|[\w\s]+山|[\w\s]+谷|[\w\s]+庄|[\w\s]+府|[\w\s]+楼|[\w\s]+阁|[\w\s]+客栈|[\w\s]+酒楼)[「『"']/) || 
+                                         parsedResponse.story.match(/在([\w\s]+村|[\w\s]+镇|[\w\s]+城|[\w\s]+寨|[\w\s]+观|[\w\s]+寺|[\w\s]+山|[\w\s]+谷|[\w\s]+庄|[\w\s]+府|[\w\s]+楼|[\w\s]+阁|[\w\s]+客栈|[\w\s]+酒楼)/);
+                    
+                    // 如果故事中有明确的location字段，优先使用
+                    if (parsedResponse.location) {
+                        currentLocation = parsedResponse.location;
+                        locationDisplay.textContent = currentLocation;
+                    } 
+                    // 否则尝试从故事文本中提取
+                    else if (locationMatch && locationMatch[1]) {
+                        currentLocation = locationMatch[1];
+                        locationDisplay.textContent = currentLocation;
+                    }
+                }
+                
+                return parsedResponse;
+            } catch (e) {
+                console.error('试着先点存档然后读档来恢复游戏:', e, '内容:', content);
+                throw new Error('试着先点存档然后读档来恢复游戏');
+            }
+        }
+
+        // 更新状态显示
+        function updateStatusDisplay() {
+            healthEl.textContent = `${playerStatus.health}/${playerStatus.maxHealth}`;
+            cultivationEl.textContent = playerStatus.cultivation;
+            factionEl.textContent = playerStatus.faction;
+            skillsEl.textContent = playerStatus.skills.join('、');
+            moneyEl.textContent = `${playerStatus.money}两银子`;
+            itemsEl.textContent = playerStatus.items.length > 0 ? playerStatus.items.join('、') : '无';
+        }
+
+        // 应用状态变化
+        function applyStatusChanges(changes) {
+            if (!changes) return;
+            
+            if (changes.health !== undefined) playerStatus.health = changes.health;
+            if (changes.maxHealth !== undefined) playerStatus.maxHealth = changes.maxHealth;
+            if (changes.cultivation) playerStatus.cultivation = changes.cultivation;
+            if (changes.faction) playerStatus.faction = changes.faction;
+            if (changes.skills) playerStatus.skills = changes.skills;
+            if (changes.money !== undefined) playerStatus.money = changes.money;
+            if (changes.items) playerStatus.items = changes.items;
+            
+            updateStatusDisplay();
+        }
+
+        // 渲染剧情和选项
+        function renderStory(story, choices) {
+            storyContainer.innerHTML = '';
+            story.split(/\n|<br\s*\/>/).forEach((paragraph, idx) => {
+                if (paragraph.trim()) {
+                    const p = document.createElement('p');
+                    p.innerHTML = paragraph;
+                    if (idx > 0) p.classList.add('mt-4');
+                    storyContainer.appendChild(p);
+                }
+            });
+            choicesContainer.innerHTML = '';
+            choices.forEach((choice, idx) => {
+                const div = document.createElement('div');
+                div.className = 'option-hover p-4 border-l-4 border-primary rounded-r-lg cursor-pointer';
+                div.innerHTML = `<p>${choice}</p>`;
+                div.dataset.idx = idx;
+                div.addEventListener('click', () => onChoice(idx));
+                choicesContainer.appendChild(div);
+            });
+        }
+
+        // 处理玩家选择
+        async function onChoice(idx) {
+            const choiceText = currentChoices[idx];
+            history.push({ story: currentStory, choice: choiceText });
+            progressCount++;
+            updateBackButtonState(); // 更新回退按钮状态
+            renderLoading();
+            try {
+                const aiResponse = await fetchAIStory(history);
+                currentStory = aiResponse.story;
+                currentChoices = aiResponse.choices;
+                
+                // 更新地点信息
+                if (aiResponse.location) {
+                    currentLocation = aiResponse.location;
+                    locationDisplay.textContent = currentLocation;
+                }
+                
+                // 应用状态变化
+                applyStatusChanges(aiResponse.statusChanges);
+                
+                renderStory(currentStory, currentChoices);
+            } catch (e) {
+                storyContainer.innerHTML = `<p class='text-red-500'>AI挂机了：${e.message}</p>`;
+                choicesContainer.innerHTML = '';
+            }
+        }
+
+        // 初始剧情
+        async function startGame() {
+            // 重置游戏状态
+            history = [];
+            progressCount = 1;
+            currentLocation = '未知之地';
+            locationDisplay.textContent = '未知之地';
+            updateBackButtonState(); // 更新回退按钮状态
+            playerStatus = {
+                health: 100,
+                maxHealth: 100,
+                cultivation: "一阶象气：象力初现",
+                faction: "无",
+                skills: ["基础拳脚"],
+                money: 10,
+                items: ["布衣", "水囊"]
+            };
+            
+            updateStatusDisplay();
+            renderLoading();
+            
+            try {
+                const aiResponse = await fetchAIStory(history);
+                currentStory = aiResponse.story;
+                currentChoices = aiResponse.choices;
+                
+                // 更新地点信息
+                if (aiResponse.location) {
+                    currentLocation = aiResponse.location;
+                    locationDisplay.textContent = currentLocation;
+                }
+                
+                applyStatusChanges(aiResponse.statusChanges);
+                renderStory(currentStory, currentChoices);
+            } catch (e) {
+                storyContainer.innerHTML = `<p class='text-red-500'>AI挂机了：${e.message}</p>`;
+                choicesContainer.innerHTML = '';
+            }
+        }
+
+        // 存档
+        function saveGame() {
+            const saveData = {
+                history,
+                currentStory,
+                currentChoices,
+                progressCount,
+                playerStatus,
+                currentLocation
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            alert('存档成功！');
+        }
+        
+        // 读档
+        function loadGame() {
+            const saveData = localStorage.getItem(SAVE_KEY);
+            if (!saveData) return alert('没有存档！');
+            
+            try {
+                const data = JSON.parse(saveData);
+                history = data.history || [];
+                currentStory = data.currentStory || '';
+                currentChoices = data.currentChoices || [];
+                progressCount = data.progressCount || 1;
+                currentLocation = data.currentLocation || '未知之地';
+                playerStatus = data.playerStatus || {
+                    health: 100,
+                    maxHealth: 100,
+                    cultivation: "一阶象气：象力初现",
+                    faction: "无",
+                    skills: ["基础拳脚"],
+                    money: 10,
+                    items: ["布衣", "水囊"]
+                };
+                
+                updateStatusDisplay();
+                renderStory(currentStory, currentChoices);
+                locationDisplay.textContent = currentLocation;
+            } catch (e) {
+                console.error('读档失败:', e);
+                alert('存档损坏！');
+            }
+        }
+
+        // 加载动画
+        function renderLoading() {
+            storyContainer.innerHTML = '<p class="text-gray-500">AI正在生成剧情，请稍候...</p>';
+            choicesContainer.innerHTML = '';
+        }
+
+        // 回退功能
+        async function goBack() {
+            if (history.length <= 1) return; // 至少需要有一个历史记录才能回退
+            
+            // 移除最后一个历史记录
+            history.pop();
+            
+            // 如果还有历史记录，回到上一步
+            if (history.length > 0) {
+                const lastState = history[history.length - 1];
+                currentStory = lastState.story;
+                
+                // 重新渲染故事和选项
+                renderStory(currentStory, currentChoices);
+                
+                // 更新回退按钮状态
+                backBtn.disabled = history.length <= 1;
+            } else {
+                // 如果没有历史记录了，重新开始游戏
+                startGame();
+            }
+        }
+
+        // 更新回退按钮状态
+        function updateBackButtonState() {
+            backBtn.disabled = history.length <= 1;
+        }
+
+        // 事件绑定
+        restartBtn.addEventListener('click', startGame);
+        saveBtn.addEventListener('click', saveGame);
+        loadBtn.addEventListener('click', loadGame);
+        backBtn.addEventListener('click', goBack);
+
+        // 启动游戏
+        startGame();
+    </script>
+</body>
+</html>
